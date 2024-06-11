@@ -7,7 +7,7 @@ async function runBot() {
     executionCount++;
     console.log(`Starting execution ${executionCount}...`);
 
-    if (executionCount >= 10) {
+    if (executionCount >= 100) {
         clearInterval(intervalId); // Stop the interval after 10 executions
         console.log("Reached the maximum number of executions.");
         return;
@@ -56,17 +56,24 @@ async function runBot() {
             console.log('Cookie button clicked');
         }
 
-        // Click "Nein danke" button after cookie banner
-        console.log('Clicking the "Nein danke" button...');
-        await page.waitForSelector('button.btn.btn-secondary.gb-push-denied');
-        await page.click('button.btn.btn-secondary.gb-push-denied');
-        console.log('Clicked the "Nein danke" button');
+        // Click "Nein danke" button after cookie banner if it exists
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        console.log('Checking for the "Nein danke" button...');
+        const neinDankeSelector = 'button.btn.btn-secondary.gb-push-denied';
+        const neinDankeButton = await page.$(neinDankeSelector);
+        if (neinDankeButton) {
+            console.log('Clicking the "Nein danke" button...');
+            await page.click(neinDankeSelector);
+            console.log('Clicked the "Nein danke" button');
+        } else {
+            console.log('"Nein danke" button not found, proceeding...');
+        }
 
         // Scroll down the page
         console.log('Scrolling down the page...');
         await page.evaluate(() => window.scrollBy(0, window.innerHeight * 1.5)); // Scroll down further
 
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        await new Promise(resolve => setTimeout(resolve, 7000));
 
         // Wait for the iframe to load
         await page.waitForSelector('iframe[src*="iframe-loader-mk2.html"]');
