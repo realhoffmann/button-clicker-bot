@@ -1,14 +1,13 @@
 const puppeteer = require('puppeteer');
 
 let executionCount = 0;
-let intervalId;
+const maxExecutions = 500;
 
-async function runBot() {
+async function runBot(interactWithCookieButton = true) {
     executionCount++;
     console.log(`Starting execution ${executionCount}...`);
 
-    if (executionCount >= 100) {
-        clearInterval(intervalId);
+    if (executionCount > maxExecutions) {
         console.log("Reached the maximum number of executions.");
         return;
     }
@@ -23,44 +22,67 @@ async function runBot() {
     });
     const page = await browser.newPage();
 
-    console.log('Navigating to the page...');
+    console.log('Navigating to CroxyProxy...');
     try {
-        await page.goto('https://www.ligaportal.at/noe/2-klasse/2-klasse-marchfeld/spieler-der-runde/106508-2-klasse-marchfeld-waehle-den-beliebtesten-tipgame-com-spieler-der-saison-23-24', {
+        await page.goto('https://www.croxyproxy.com/_de/', {
             waitUntil: 'networkidle2',
             timeout: 60000
         });
-        console.log('Page loaded successfully');
+        console.log('CroxyProxy page loaded successfully');
+
+        // Click away the cookie banner
+        const cookieButtonSelector = 'button.fc-button.fc-cta-consent.fc-primary-button[aria-label="Einwilligen"]';
+        const cookieButton = await page.waitForSelector(cookieButtonSelector, { visible: true });
+        if (cookieButton) {
+            console.log('Clicking the cookie banner button...');
+            await page.click(cookieButtonSelector);
+            console.log('Cookie banner button clicked');
+        }
     } catch (error) {
-        console.error('Failed to load the page:', error);
+        console.error('Failed to load CroxyProxy page or click the cookie banner:', error);
         await browser.close();
         return;
     }
 
     try {
-        console.log('Waiting for the cookie button...');
-        const allFrames = page.frames();
-        let foundButton = false;
-        for (const frame of allFrames) {
-            try {
-                const cookieButton = await frame.waitForSelector('button#save.mat-focus-indicator.solo-button.mat-button.mat-button-base.mat-flat-button', { visible: true, timeout: 100 });
-                if (cookieButton) {
-                    console.log('Cookie button found in a frame, clicking it...');
-                    await frame.evaluate(button => button.click(), cookieButton);
-                    foundButton = true;
-                    break;
-                }
-            } catch (frameError) {
-                console.log(`Button not found in the current frame: ${frameError}`);
-            }
-        }
+        console.log('Entering URL in the input field...');
+        await page.type('input#url', 'https://www.ligaportal.at/noe/2-klasse/2-klasse-marchfeld/spieler-der-runde/106508-2-klasse-marchfeld-waehle-den-beliebtesten-tipgame-com-spieler-der-saison-23-24');
 
-        if (!foundButton) {
-            console.log('Cookie button not found in any frames.');
-            await page.screenshot({ path: 'cookie-button-not-found.png' });
-            await browser.close();
-            return;
-        } else {
-            console.log('Cookie button clicked');
+        console.log('Clicking the submit button...');
+        await page.click('button#requestSubmit');
+
+        // Wait for the redirected page to load
+        await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 });
+        console.log('Redirected page loaded successfully');
+
+        // Perform the rest of the actions on the redirected page, optionally interact with the cookie button
+        if (interactWithCookieButton) {
+            await new Promise(resolve => setTimeout(resolve, 15000));
+            console.log('Waiting for the cookie button...');
+            const allFrames = page.frames();
+            let foundButton = false;
+            for (const frame of allFrames) {
+                try {
+                    const cookieButton = await frame.waitForSelector('button#save.mat-focus-indicator.solo-button.mat-button.mat-button-base.mat-flat-button', { visible: true, timeout: 100 });
+                    if (cookieButton) {
+                        console.log('Cookie button found in a frame, clicking it...');
+                        await frame.evaluate(button => button.click(), cookieButton);
+                        foundButton = true;
+                        break;
+                    }
+                } catch (frameError) {
+                    console.log(`Button not found in the current frame: ${frameError}`);
+                }
+            }
+
+            if (!foundButton) {
+                console.log('Cookie button not found in any frames.');
+                await page.screenshot({ path: 'cookie-button-not-found.png' });
+                await browser.close();
+                return;
+            } else {
+                console.log('Cookie button clicked');
+            }
         }
 
         // Click "Nein danke" button after cookie banner if it exists
@@ -135,9 +157,9 @@ async function runBot() {
     } finally {
         await browser.close();
         console.log(`Execution ${executionCount} complete.`);
+        runBot(interactWithCookieButton); // Start the next execution
     }
 }
 
-// Initialize the repeated execution
-intervalId = setInterval(runBot, 11 * 60 * 1000); // Set to run every 11 minutes
-runBot(); // Also run immediately when the script is started
+// Start the first execution
+runBot(true); // Pass true or false based on whether you want to interact with the cookie button
