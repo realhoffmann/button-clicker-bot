@@ -22,6 +22,7 @@ async function runBot(interactWithCookieButton = true) {
     });
     const page = await browser.newPage();
 
+
     console.log('Navigating to CroxyProxy...');
     try {
         await page.goto('https://www.croxyproxy.com/_de/', {
