@@ -8,12 +8,19 @@ async function runBot() {
     console.log(`Starting execution ${executionCount}...`);
 
     if (executionCount >= 100) {
-        clearInterval(intervalId); // Stop the interval after 10 executions
+        clearInterval(intervalId);
         console.log("Reached the maximum number of executions.");
         return;
     }
 
-    const browser = await puppeteer.launch({ headless: false });
+    const browser = await puppeteer.launch({
+        headless: false,
+        args: [
+            '--disable-notifications' // disable push notifications
+        ],
+        defaultViewport: null,
+        ignoreDefaultArgs: ['--enable-automation']
+    });
     const page = await browser.newPage();
 
     console.log('Navigating to the page...');
